@@ -18,20 +18,43 @@
     <div class="container">
 
         <!-- Header -->
-        <header>
-            <h1>Academic Answer Quality Checker</h1>
+        <header class="header">
+
+            <div class="badge">
+                NLP-Powered Evaluation
+            </div>
+
+            <h1>
+                Academic Answer
+                <span>Quality Checker</span>
+            </h1>
 
             <p>
-                Evaluate your answer against a model answer
+                Evaluate student answers against a model answer
                 using NLP-based analysis.
             </p>
+
         </header>
 
 
-        <!-- Input Section -->
+        <!-- Input Form -->
         <main>
 
             <form method="POST" class="answer-form">
+
+                <div class="form-header">
+
+                    <div>
+                        <h2>Answer Evaluation</h2>
+
+                        <p>
+                            Enter the question, model answer,
+                            and student's answer.
+                        </p>
+                    </div>
+
+                </div>
+
 
                 <!-- Question -->
                 <div class="field">
@@ -43,7 +66,7 @@
                     <textarea
                         id="question"
                         name="question"
-                        placeholder="Enter the question..."
+                        placeholder="Example: Explain the role of an operating system."
                     ></textarea>
 
                 </div>
@@ -54,6 +77,7 @@
 
                     <label for="model_answer">
                         Model Answer
+                        <span class="required">*</span>
                     </label>
 
                     <textarea
@@ -71,6 +95,7 @@
 
                     <label for="student_answer">
                         Student Answer
+                        <span class="required">*</span>
                     </label>
 
                     <textarea
@@ -84,8 +109,12 @@
 
 
                 <!-- Submit -->
-                <button type="submit">
+                <button
+                    type="submit"
+                    class="evaluate-btn"
+                >
                     Evaluate Answer
+                    <span>→</span>
                 </button>
 
             </form>
@@ -96,22 +125,66 @@
 
             <section class="results">
 
-                <h2>Evaluation Results</h2>
+                <div class="results-header">
+
+                    <div>
+                        <div class="badge">
+                            Evaluation Complete
+                        </div>
+
+                        <h2>Evaluation Results</h2>
+                    </div>
+
+                </div>
 
 
-                <!-- Score Cards -->
+                <!-- Final Score -->
+                <div class="final-score-card">
+
+                    <div class="final-score-content">
+
+                        <span class="final-label">
+                            Overall Score
+                        </span>
+
+                        <strong class="final-score">
+                            {{ final_score }}%
+                        </strong>
+
+                        <span class="final-description">
+                            Based on similarity, coverage,
+                            grammar and clarity
+                        </span>
+
+                    </div>
+
+                </div>
+
+
+                <!-- Individual Scores -->
                 <div class="score-grid">
 
                     <!-- Similarity -->
                     <div class="score-card">
 
-                        <span>
-                            Semantic Similarity
-                        </span>
+                        <div class="score-card-header">
 
-                        <strong>
+                            <span class="score-title">
+                                Semantic Similarity
+                            </span>
+
+                        </div>
+
+                        <strong class="score-value">
                             {{ score }}%
                         </strong>
+
+                        <div class="progress">
+                            <div
+                                class="progress-bar"
+                                style="width: {{ score }}%"
+                            ></div>
+                        </div>
 
                     </div>
 
@@ -119,13 +192,24 @@
                     <!-- Coverage -->
                     <div class="score-card">
 
-                        <span>
-                            Key Point Coverage
-                        </span>
+                        <div class="score-card-header">
 
-                        <strong>
+                            <span class="score-title">
+                                Key Point Coverage
+                            </span>
+
+                        </div>
+
+                        <strong class="score-value">
                             {{ coverage }}%
                         </strong>
+
+                        <div class="progress">
+                            <div
+                                class="progress-bar"
+                                style="width: {{ coverage }}%"
+                            ></div>
+                        </div>
 
                     </div>
 
@@ -133,13 +217,49 @@
                     <!-- Grammar -->
                     <div class="score-card">
 
-                        <span>
-                            Grammar Score
-                        </span>
+                        <div class="score-card-header">
 
-                        <strong>
+                            <span class="score-title">
+                                Grammar Score
+                            </span>
+
+                        </div>
+
+                        <strong class="score-value">
                             {{ grammar_score }}%
                         </strong>
+
+                        <div class="progress">
+                            <div
+                                class="progress-bar"
+                                style="width: {{ grammar_score }}%"
+                            ></div>
+                        </div>
+
+                    </div>
+
+
+                    <!-- Clarity -->
+                    <div class="score-card">
+
+                        <div class="score-card-header">
+
+                            <span class="score-title">
+                                Clarity Score
+                            </span>
+
+                        </div>
+
+                        <strong class="score-value">
+                            {{ clarity_score }}%
+                        </strong>
+
+                        <div class="progress">
+                            <div
+                                class="progress-bar"
+                                style="width: {{ clarity_score }}%"
+                            ></div>
+                        </div>
 
                     </div>
 
@@ -147,25 +267,38 @@
 
 
                 <!-- Points -->
-                <div class="points">
+                <div class="points-grid">
 
                     <!-- Covered Points -->
-                    <div class="point-section">
+                    <div class="point-section covered-section">
 
-                        <h3>
-                            Covered Points
-                        </h3>
+                        <div class="section-title">
+
+                            <span class="section-icon success">
+                                ✓
+                            </span>
+
+                            <h3>
+                                Covered Points
+                            </h3>
+
+                        </div>
+
 
                         {% if covered_points %}
 
-                        <ul>
+                        <ul class="point-list">
 
                             {% for point in covered_points %}
 
                             <li>
-                                <span class="check">✓</span>
+                                <span class="point-check">
+                                    ✓
+                                </span>
 
-                                {{ point }}
+                                <span>
+                                    {{ point }}
+                                </span>
                             </li>
 
                             {% endfor %}
@@ -174,7 +307,7 @@
 
                         {% else %}
 
-                        <p>
+                        <p class="empty-message">
                             No major points detected.
                         </p>
 
@@ -184,22 +317,35 @@
 
 
                     <!-- Missing Points -->
-                    <div class="point-section">
+                    <div class="point-section missing-section">
 
-                        <h3>
-                            Missing Points
-                        </h3>
+                        <div class="section-title">
+
+                            <span class="section-icon danger">
+                                !
+                            </span>
+
+                            <h3>
+                                Missing Points
+                            </h3>
+
+                        </div>
+
 
                         {% if missing_points %}
 
-                        <ul>
+                        <ul class="point-list">
 
                             {% for point in missing_points %}
 
                             <li>
-                                <span class="cross">✗</span>
+                                <span class="point-cross">
+                                    ✗
+                                </span>
 
-                                {{ point }}
+                                <span>
+                                    {{ point }}
+                                </span>
                             </li>
 
                             {% endfor %}
@@ -208,7 +354,7 @@
 
                         {% else %}
 
-                        <p>
+                        <p class="empty-message">
                             No major points appear to be missing.
                         </p>
 
@@ -218,11 +364,64 @@
 
                 </div>
 
+
+                <!-- Feedback -->
+                <div class="feedback-card">
+
+                    <div class="section-title">
+
+                        <span class="section-icon feedback-icon">
+                            💡
+                        </span>
+
+                        <h3>
+                            Feedback
+                        </h3>
+
+                    </div>
+
+
+                    {% if feedback %}
+
+                    <ul class="feedback-list">
+
+                        {% for item in feedback %}
+
+                        <li>
+                            {{ item }}
+                        </li>
+
+                        {% endfor %}
+
+                    </ul>
+
+                    {% else %}
+
+                    <p class="empty-message">
+                        No feedback available.
+                    </p>
+
+                    {% endif %}
+
+                </div>
+
             </section>
 
             {% endif %}
 
         </main>
+
+
+        <!-- Footer -->
+        <footer>
+
+            <p>
+                Academic Answer Quality Checker
+                <span>•</span>
+                NLP-based evaluation system
+            </p>
+
+        </footer>
 
     </div>
 
