@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Academic Answer Quality Checker</title>
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='style.css') }}"
+    >
+</head>
+
+<body>
+
+    <div class="container">
+
+        <!-- Header -->
+        <header>
+            <h1>Academic Answer Quality Checker</h1>
+
+            <p>
+                Evaluate your answer against a model answer
+                using NLP-based analysis.
+            </p>
+        </header>
+
+
+        <!-- Input Section -->
+        <main>
+
+            <form method="POST" class="answer-form">
+
+                <!-- Question -->
+                <div class="field">
+
+                    <label for="question">
+                        Question
+                    </label>
+
+                    <textarea
+                        id="question"
+                        name="question"
+                        placeholder="Enter the question..."
+                    ></textarea>
+
+                </div>
+
+
+                <!-- Model Answer -->
+                <div class="field">
+
+                    <label for="model_answer">
+                        Model Answer
+                    </label>
+
+                    <textarea
+                        id="model_answer"
+                        name="model_answer"
+                        placeholder="Enter the ideal/model answer..."
+                        required
+                    ></textarea>
+
+                </div>
+
+
+                <!-- Student Answer -->
+                <div class="field">
+
+                    <label for="student_answer">
+                        Student Answer
+                    </label>
+
+                    <textarea
+                        id="student_answer"
+                        name="student_answer"
+                        placeholder="Enter the student's answer..."
+                        required
+                    ></textarea>
+
+                </div>
+
+
+                <!-- Submit -->
+                <button type="submit">
+                    Evaluate Answer
+                </button>
+
+            </form>
+
+
+            <!-- Results -->
+            {% if score is not none %}
+
+            <section class="results">
+
+                <h2>Evaluation Results</h2>
+
+
+                <!-- Score Cards -->
+                <div class="score-grid">
+
+                    <!-- Similarity -->
+                    <div class="score-card">
+
+                        <span>
+                            Semantic Similarity
+                        </span>
+
+                        <strong>
+                            {{ score }}%
+                        </strong>
+
+                    </div>
+
+
+                    <!-- Coverage -->
+                    <div class="score-card">
+
+                        <span>
+                            Key Point Coverage
+                        </span>
+
+                        <strong>
+                            {{ coverage }}%
+                        </strong>
+
+                    </div>
+
+
+                    <!-- Grammar -->
+                    <div class="score-card">
+
+                        <span>
+                            Grammar Score
+                        </span>
+
+                        <strong>
+                            {{ grammar_score }}%
+                        </strong>
+
+                    </div>
+
+                </div>
+
+
+                <!-- Points -->
+                <div class="points">
+
+                    <!-- Covered Points -->
+                    <div class="point-section">
+
+                        <h3>
+                            Covered Points
+                        </h3>
+
+                        {% if covered_points %}
+
+                        <ul>
+
+                            {% for point in covered_points %}
+
+                            <li>
+                                <span class="check">✓</span>
+
+                                {{ point }}
+                            </li>
+
+                            {% endfor %}
+
+                        </ul>
+
+                        {% else %}
+
+                        <p>
+                            No major points detected.
+                        </p>
+
+                        {% endif %}
+
+                    </div>
+
+
+                    <!-- Missing Points -->
+                    <div class="point-section">
+
+                        <h3>
+                            Missing Points
+                        </h3>
+
+                        {% if missing_points %}
+
+                        <ul>
+
+                            {% for point in missing_points %}
+
+                            <li>
+                                <span class="cross">✗</span>
+
+                                {{ point }}
+                            </li>
+
+                            {% endfor %}
+
+                        </ul>
+
+                        {% else %}
+
+                        <p>
+                            No major points appear to be missing.
+                        </p>
+
+                        {% endif %}
+
+                    </div>
+
+                </div>
+
+            </section>
+
+            {% endif %}
+
+        </main>
+
+    </div>
+
+</body>
+
+</html>
