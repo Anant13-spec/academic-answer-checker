@@ -3,9 +3,11 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 import language_tool_python
 import nltk
+from sentence_transformers import SentenceTransformer
 import re
 
 app = Flask(__name__)
+model = SentenceTransformer("all-MiniLM-L6-v2")
 
 # LanguageTool setup
 
@@ -24,16 +26,12 @@ except LookupError:
 
 def calculate_similarity(model_answer, student_answer):
 
-    vectorizer = TfidfVectorizer()
-
-    vectors = vectorizer.fit_transform([
-        model_answer,
-        student_answer
-    ])
+    model_embedding = model.encode([model_answer])
+    student_embedding = model.encode([student_answer])
 
     similarity = cosine_similarity(
-        vectors[0],
-        vectors[1]
+        model_embedding,
+        student_embedding
     )[0][0]
 
     return round(similarity * 100, 2)
@@ -62,50 +60,31 @@ def calculate_coverage(model_answer, student_answer):
     covered_points = []
     missing_points = []
 
-    for point in model_points:
+    if not model_points:
+        return 0, covered_points, missing_points
 
-        vectorizer = TfidfVectorizer()
+    model_embeddings = model.encode(model_points)
+    student_embedding = model.encode([student_answer])
 
-        try:
+    for index, point in enumerate(model_points):
 
-            vectors = vectorizer.fit_transform([
-                point,
-                student_answer
-            ])
+        point_embedding = model_embeddings[index].reshape(1, -1)
 
-            similarity = cosine_similarity(
-                vectors[0],
-                vectors[1]
-            )[0][0]
+        similarity = cosine_similarity(
+            point_embedding,
+            student_embedding
+        )[0][0]
 
-        except ValueError:
-
-            similarity = 0
-
-        if similarity >= 0.25:
-
+        if similarity >= 0.45:
             covered_points.append(point)
-
         else:
-
             missing_points.append(point)
 
-    if len(model_points) == 0:
+    coverage = (
+        len(covered_points) / len(model_points)
+    ) * 100
 
-        coverage = 0
-
-    else:
-
-        coverage = (
-            len(covered_points)
-            / len(model_points)
-        ) * 100
-
-    return (
-        round(coverage, 2),
-        covered_points,
-        missing_points
-    )
+    return round(coverage, 2), covered_points, missing_points
 
 
 # Grammar Score
