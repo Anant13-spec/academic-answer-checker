@@ -1,336 +1,17 @@
 from flask import Flask, render_template, request
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.metrics.pairwise import cosine_similarity
-import language_tool_python
-import nltk
-from sentence_transformers import SentenceTransformer
-import re
+
+from evaluator.similarity import calculate_similarity
+from evaluator.coverage import calculate_coverage
+from evaluator.grammar import calculate_grammar_score
+from evaluator.clarity import calculate_clarity_score
+from evaluator.scoring import calculate_final_score
+from evaluator.feedback import generate_feedback
+
 
 app = Flask(__name__)
-model = SentenceTransformer("all-MiniLM-L6-v2")
 
-# LanguageTool setup
 
-tool = language_tool_python.LanguageTool("en-US")
-
-
-# Download/check NLTK tokenizer
-
-try:
-    nltk.data.find("tokenizers/punkt")
-except LookupError:
-    nltk.download("punkt")
-
-
-# Semantic Similarity
-
-def calculate_similarity(model_answer, student_answer):
-
-    model_embedding = model.encode([model_answer])
-    student_embedding = model.encode([student_answer])
-
-    similarity = cosine_similarity(
-        model_embedding,
-        student_embedding
-    )[0][0]
-
-    return round(similarity * 100, 2)
-
-
-# Split text into sentences
-
-def split_into_sentences(text):
-
-    sentences = re.split(
-        r'(?<=[.!?])\s+',
-        text.strip()
-    )
-
-    return [
-        sentence.strip()
-        for sentence in sentences
-        if sentence.strip()
-    ]
-# Key Point Coverage
-
-def calculate_coverage(model_answer, student_answer):
-
-    model_points = split_into_sentences(model_answer)
-
-    covered_points = []
-    missing_points = []
-
-    if not model_points:
-        return 0, covered_points, missing_points
-
-    model_embeddings = model.encode(model_points)
-    student_embedding = model.encode([student_answer])
-
-    for index, point in enumerate(model_points):
-
-        point_embedding = model_embeddings[index].reshape(1, -1)
-
-        similarity = cosine_similarity(
-            point_embedding,
-            student_embedding
-        )[0][0]
-
-        if similarity >= 0.45:
-            covered_points.append(point)
-        else:
-            missing_points.append(point)
-
-    coverage = (
-        len(covered_points) / len(model_points)
-    ) * 100
-
-    return round(coverage, 2), covered_points, missing_points
-
-
-# Grammar Score
-
-def calculate_grammar_score(student_answer):
-
-    if not student_answer.strip():
-        return 0
-
-    matches = tool.check(student_answer)
-
-    words = len(student_answer.split())
-
-    if words == 0:
-        return 0
-
-    errors = len(matches)
-
-    # Grammar errors per 100 words
-    error_rate = (errors / words) * 100
-
-    # Convert error rate to score
-    score = 100 - (error_rate * 5)
-
-    # Keep score between 0 and 100
-    score = max(
-        0,
-        min(100, score)
-    )
-
-    return round(score, 2)
-
-
-# Clarity Score
-
-def calculate_clarity_score(student_answer):
-
-    if not student_answer.strip():
-        return 0
-
-    try:
-
-        sentences = nltk.sent_tokenize(
-            student_answer
-        )
-
-    except LookupError:
-
-        sentences = split_into_sentences(
-            student_answer
-        )
-
-    if not sentences:
-        return 0
-
-    words = student_answer.split()
-
-    if not words:
-        return 0
-
-    average_sentence_length = (
-        len(words) / len(sentences)
-    )
-
-    score = 100
-
-    # Penalize very long sentences
-
-    if average_sentence_length > 30:
-
-        score -= 30
-
-    elif average_sentence_length > 25:
-
-        score -= 20
-
-    elif average_sentence_length > 20:
-
-        score -= 10
-
-    # Penalize extremely short answers
-
-    if len(words) < 5:
-
-        score -= 30
-
-    return max(
-        0,
-        min(100, score)
-    )
-
-
-# Final Score
-
-def calculate_final_score(
-    similarity,
-    coverage,
-    grammar,
-    clarity
-):
-
-    final_score = (
-
-        similarity * 0.40
-
-        + coverage * 0.30
-
-        + grammar * 0.15
-
-        + clarity * 0.15
-
-    )
-
-    return round(
-        final_score,
-        2
-    )
-
-
-# Feedback Generation
-
-def generate_feedback(
-    similarity,
-    coverage,
-    grammar,
-    clarity,
-    missing_points
-):
-
-    feedback = []
-
-
-    # Similarity feedback
-
-    if similarity >= 80:
-
-        feedback.append(
-            "Your answer is highly similar "
-            "to the model answer."
-        )
-
-    elif similarity >= 60:
-
-        feedback.append(
-            "Your answer is reasonably similar "
-            "to the model answer."
-        )
-
-    else:
-
-        feedback.append(
-            "Your answer differs significantly "
-            "from the model answer."
-        )
-
-
-    # Coverage feedback
-
-    if coverage >= 80:
-
-        feedback.append(
-            "You covered most of the "
-            "important points."
-        )
-
-    elif coverage >= 50:
-
-        feedback.append(
-            "You covered some important points, "
-            "but some concepts are missing."
-        )
-
-    else:
-
-        feedback.append(
-            "Several important points from "
-            "the model answer are missing."
-        )
-
-
-    # Grammar feedback
-
-    if grammar >= 80:
-
-        feedback.append(
-            "Your grammar is generally good."
-        )
-
-    elif grammar >= 60:
-
-        feedback.append(
-            "There are some grammar issues "
-            "that should be corrected."
-        )
-
-    else:
-
-        feedback.append(
-            "Your answer contains significant "
-            "grammar issues."
-        )
-
-
-    # Clarity feedback
-
-    if clarity >= 80:
-
-        feedback.append(
-            "Your answer is clear and "
-            "easy to understand."
-        )
-
-    elif clarity >= 60:
-
-        feedback.append(
-            "Your answer is understandable "
-            "but could be clearer."
-        )
-
-    else:
-
-        feedback.append(
-            "Try using shorter and clearer "
-            "sentences."
-        )
-
-
-    # Missing points
-
-    if missing_points:
-
-        feedback.append(
-            "Important missing concepts: "
-            + " ".join(missing_points)
-        )
-
-
-    return feedback
-
-
-# Home Route
-
-@app.route(
-    "/",
-    methods=["GET", "POST"]
-)
+@app.route("/", methods=["GET", "POST"])
 def home():
 
     score = None
@@ -345,8 +26,6 @@ def home():
     feedback = []
 
 
-    # Handle form submission
-
     if request.method == "POST":
 
         model_answer = request.form.get(
@@ -359,7 +38,6 @@ def home():
             ""
         ).strip()
 
-        # Calculate Similarity
 
         if model_answer and student_answer:
 
@@ -368,8 +46,6 @@ def home():
                 student_answer
             )
 
-
-            # Calculate Coverage
 
             (
                 coverage,
@@ -381,31 +57,29 @@ def home():
             )
 
 
-            # Calculate Grammar
-
-            grammar_score = calculate_grammar_score(
-                student_answer
+            grammar_score = (
+                calculate_grammar_score(
+                    student_answer
+                )
             )
 
 
-            # Calculate Clarity
-
-            clarity_score = calculate_clarity_score(
-                student_answer
+            clarity_score = (
+                calculate_clarity_score(
+                    student_answer
+                )
             )
 
 
-            # Calculate Final Score
-
-            final_score = calculate_final_score(
-                score,
-                coverage,
-                grammar_score,
-                clarity_score
+            final_score = (
+                calculate_final_score(
+                    score,
+                    coverage,
+                    grammar_score,
+                    clarity_score
+                )
             )
 
-
-            # Generate Feedback
 
             feedback = generate_feedback(
                 score,
@@ -416,10 +90,7 @@ def home():
             )
 
 
-
-    # Send results to HTML
     return render_template(
-
         "index.html",
 
         score=score,
@@ -437,10 +108,9 @@ def home():
         missing_points=missing_points,
 
         feedback=feedback
-
     )
 
-# Run Flask
+
 if __name__ == "__main__":
 
     app.run(
